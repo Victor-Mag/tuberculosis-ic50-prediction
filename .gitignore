@@ -4,4 +4,8 @@
 # Python Cache
 __pycache__/
 
-.csv
+# Mais todos esses
+*.csv
+*.db
+*.xlsx
+*.parquet
