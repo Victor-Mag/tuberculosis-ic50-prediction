@@ -11,9 +11,9 @@ from rdkit.ML.Descriptors import MoleculeDescriptors
 import pandas as pd
 import numpy as np
 import json
-import pathlib
+from pathlib import Path
 
-#%%
+# %%
 molecule = new_client.molecule
 activity = new_client.activity
 
@@ -21,16 +21,18 @@ activity = new_client.activity
 # Buscar atividades de LD50
 print("Buscando dados de IC50...")
 ic50_activities = activity.filter(
+    target_chembl_id='CHEMBL360',
     standard_type='IC50',
-    standard_units='mg.kg-1',  
+    standard_units='nM',
     standard_relation='=',
-    assay_type='F'  # Functional assay
+    assay_type__in=['F', 'B']  # Funcionais e padrões biologicos
 ).only([
     'molecule_chembl_id',
     'canonical_smiles',
     'standard_value',
     'standard_units',
     'assay_description',
+    'assay_type',
     'target_organism'
 ])
 
@@ -45,3 +47,15 @@ print(f"Registros encontrados: {len(ic50_list)}")
 
 df = pd.DataFrame(ic50_list)
 df.tail()
+
+# %%
+df_ic50 = df['assay_description']
+df_ic50.value_counts().head(5) # Isso confirma que os dados tem natureza
+# Fenotipica, logo tratam apenas do Mycobacterium como um todo
+# Não sobre enzimas ou vias metabólicas suprimidas
+
+# %%
+from pathlib import Path
+filepath = Path('../../data/raw.csv')
+filepath.parent.mkdir(parents=True, exist_ok=True)
+df.to_csv(filepath)
