@@ -50,12 +50,9 @@ df.tail()
 
 # %%
 df_ic50 = df['assay_description']
-df_ic50.value_counts().head(5) # Isso confirma que os dados tem natureza
+df_ic50.value_counts().head(5)  # Isso confirma que os dados tem natureza
 # Fenotipica, logo tratam apenas do Mycobacterium como um todo
 # Não sobre enzimas ou vias metabólicas suprimidas
 
 # %%
-from pathlib import Path
-filepath = Path('../../data/raw.csv')
-filepath.parent.mkdir(parents=True, exist_ok=True)
-df.to_csv(filepath)
+df.to_csv('../../data/raw.csv', sep=',')
