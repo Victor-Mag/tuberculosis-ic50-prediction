@@ -8,13 +8,14 @@ from morgan_descriptors_generator import descritores
 import pandas as pd
 import numpy as np
 # %%
-df = pd.read_csv('../../data/interim/cleaned_data.csv', sep=',')
+df = pd.read_csv('../../data/raw.csv', sep=',')
 df.head()
-
 # %%
-# Removendo o molecule_chembl_id, Unnamed:0, standard_value e faixa
-df2 = df[['canonical_smiles', 'pic50']].copy()
-df2.head()
+df.columns
+# %%
+# Removendo Unnamed:0
+df = df.drop(columns=['Unnamed: 0', 'ic50_nm'])
+df.head()
 # %%
 features_lista = []
 smiles_validos = []
@@ -22,7 +23,7 @@ pic50_validos = []
 
 # %%
 
-for idx, row in df2.iterrows():
+for idx, row in df.iterrows():
     smiles = row['canonical_smiles']
     pic50 = row['pic50']
 
@@ -42,10 +43,10 @@ y = np.array(pic50_validos)
 print(f"\n{'='*60}")
 print("RESULTADO:")
 print(f"{'='*60}")
-print(f"Moléculas processadas: {len(features_lista)}/{len(df2)}")
+print(f"Moléculas processadas: {len(features_lista)}/{len(df)}")
 print(f"Shape de X: {X.shape}")
 print(f"Shape de y: {y.shape}")
-print(f"Features totais: {X.shape[1]} (2048 Fingerprints de Morgan)")
+print(f"Features totais: {X.shape[1]} Fingerprints de Morgan)")
 
 print(f"\nVerificação de dados:")
 print(f"  NaN em X: {np.isnan(X).sum()}")

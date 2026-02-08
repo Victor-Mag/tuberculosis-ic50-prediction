@@ -10,7 +10,7 @@ def descritores(smiles):
     if mol is None:
         return None
 
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
+    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=1024)
     fp_array = np.array(fp)
 
     return fp_array

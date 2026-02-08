@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import learning_curve
 from sklearn.svm import SVR
+from sklearn.model_selection import cross_val_score
+
 df = pd.read_parquet('../../data/processed.parquet')
 # %%
 df.columns, df.shape
@@ -24,50 +26,51 @@ print(X)
 print(y)
 
 # %%
+# Criando bins (categorias) do target para permitir a estratificação
+# Isso garante que treino e teste tenham distribuições de pic50 similares
+bins = pd.cut(y, bins=8, labels=False)
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42)
+    X, y, test_size=0.2, random_state=42, stratify=bins)
 
-X_train.shape, y_train.shape, X_test.shape, y_test.shape   # Compreendendo o conjunto de dados de treino
+# Compreendendo o conjunto de dados de treino
+X_train.shape, y_train.shape, X_test.shape, y_test.shape
 
 # %%
- # Compreendendo o conjunto de dados de teste
-# %%
 
-lista_modelos={
+lista_modelos = {
     'RandomForest': RandomForestRegressor(n_estimators=100,
-                                random_state=42,
-                                n_jobs=-1,
-                                max_depth=6),
+                                          random_state=42,
+                                          n_jobs=-1,
+                                          max_depth=6),
     'XGBoost': XGBRegressor(n_estimators=100,
                             random_state=42,
                             n_jobs=-1,
-                            max_depth = 6,
-                            eta = 0.7,
-                            gamma = 20),
+                            max_depth=6,
+                            eta=0.7,
+                            gamma=20),
     'SVR': SVR(kernel='rbf',
-               gamma ='auto',
-               C = 0.1)
+               gamma='auto',
+               C=0.1)
 }
 
-for nome,modelo in lista_modelos.items():
+for nome, modelo in lista_modelos.items():
     train_sizes, train_scores, val_scores = learning_curve(
         estimator=modelo,
-        X = X,
-        y = y,
-        train_sizes= np.linspace(0.2, 1, 4),
+        X=X,
+        y=y,
+        train_sizes=np.linspace(0.2, 1, 4),
         n_jobs=-1,
         scoring='r2',
         cv=10,
-        verbose=1                      
-                                                           )
+        verbose=1
+    )
     print(f'Nome: {nome}, r2: {val_scores.mean():.3f} ± {val_scores.std():.3f}')
-    
+
     train_mean = train_scores.mean(axis=1)
     train_std = train_scores.std(axis=1)
 
     val_mean = val_scores.mean(axis=1)
     val_std = val_scores.std(axis=1)
-
 
     plt.figure()
     plt.plot(train_sizes, train_mean, label='Training R²')
@@ -93,19 +96,16 @@ for nome,modelo in lista_modelos.items():
     plt.show()
 
 
-
-
-
 # %%
 # Treinamento e Avaliação com Random Forest
 
 rf = RandomForestRegressor(n_estimators=100,
                            random_state=42,
                            n_jobs=-1,
-                           max_depth= 10,
-                           min_samples_leaf= 1
-                           )
+                           criterion='squared_error')
 
+
+# %%
 train_sizes, train_scores, val_scores = learning_curve(estimator=rf,
                                                        X=X,
                                                        y=y,
@@ -146,13 +146,19 @@ plt.show()
 
 
 # %%
+# Calculando Q^2 (R2 de validação cruzada)
+rf = RandomForestRegressor(n_estimators=100,
+                           random_state=42,
+                           n_jobs=-1,
+                           criterion='absolute_error')
 
-# Testando sem PCA: Random Forests lidam bem com alta dimensionalidade (Fingerprints)
-# O PCA pode estar removendo padrões não-lineares importantes
+scores = cross_val_score(rf, X_train, y_train, cv=5, scoring='r2')
+q2 = scores.mean()
+
 rf.fit(X_train, y_train)
-
 y_pred = rf.predict(X_test)
 
+print(f"Q² (CV): {q2:.3f} (+/- {scores.std():.3f})")
 print(f"R² Score: {r2_score(y_test, y_pred):.3f}")
 print(f"RMSE: {np.sqrt(mean_squared_error(y_test, y_pred)):.3f}")
 
@@ -162,15 +168,23 @@ plt.xlabel('Real')
 plt.ylabel('Predito')
 plt.title('Random Forest: Real vs Predito')
 plt.grid(True, linestyle='--', alpha=0.6)
-plt.show()  
+plt.show()
 
 
 # %%
 
-modelo_xgb = XGBRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+modelo_xgb = XGBRegressor(n_estimators=100,
+                           random_state=42,
+                            n_jobs=-1)
+
+# Calculando Q^2 para XGBoost
+scores_xgb = cross_val_score(modelo_xgb, X_train, y_train, cv=5, scoring='r2')
+q2_xgb = scores_xgb.mean()
+
 modelo_xgb.fit(X_train, y_train)
 y_pred = modelo_xgb.predict(X_test)
 
+print(f"XGBoost Q² (CV): {q2_xgb:.3f} (+/- {scores_xgb.std():.3f})")
 print(f"XGBoost R² Score: {r2_score(y_test, y_pred):.3f}")
 print(f"XGBoost RMSE: {np.sqrt(mean_squared_error(y_test, y_pred)):.3f}")
 
